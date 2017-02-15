@@ -196,6 +196,7 @@
       /** @type {CKEDITOR.dom.element} */
       let newBlock
       const isInOrderedList = (block.getAscendant('li', true) && CKEDITOR.plugins.enterkey.inOrderedList(block))
+      const parentList = block.getAscendant({ul: 1, ol: 1})
 
       // Exit the list when we're inside an empty list item block.
       if (
@@ -257,6 +258,15 @@
         node = previousBlock.getNext() // = <li></li>
         range.moveToElementEditStart(node)
         previousBlock.move(previousBlock.getPrevious()) // move p tag back into the <li>
+
+        if (node.getFirst() && (node.getFirst().is('ol') || node.getFirst().is('ul'))) {
+          // If the next list item has a list as first child, add empty label.
+          const paragraphNode = doc.createElement('p')
+          const labelNode = doc.createElement('span')
+          labelNode.addClass('label')
+          paragraphNode.insertBefore(node.getFirst())
+          range.moveToElementEditStart(node)
+        }
       }
 
       // If we have both the previous and next blocks, it means that the
@@ -376,6 +386,11 @@
 
         // Move the selection to the new block.
         range.moveToElementEditEnd(newParagraphBlock)
+      }
+
+      if (parentList && isInOrderedList) {
+        // Renumber list.
+        CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
       }
 
       range.select()
@@ -567,6 +582,9 @@
         } else {
           block.breakParent(blockGrandParent)
         }
+
+        const parentList = blockGrandParent.getAscendant({ul: 1, ol: 1})
+        CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
       } else if (!needsBlock) {
         block.appendBogus(true)
 
@@ -599,6 +617,9 @@
             placeholderNode[firstChild ? 'insertBefore' : 'insertAfter'](targetParentNode)
             newSelectionTarget = placeholderNode
           }
+
+          const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
+          CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
         } else {
           // If the empty block is neither first nor last child
           // then split the list and put all the block contents
@@ -614,6 +635,8 @@
           // If grandparent is div.list, then break on that instead of the list.
           block.breakParent(targetParentNode)
 
+          let nextList = block.getNext()
+
           if (!CKEDITOR.plugins.enterkey.isListItemEmpty(block, editor)) {
             while ((child = block.getLast())) {
               child.insertAfter(targetParentNode)
@@ -624,6 +647,17 @@
             placeholderNode.appendBogus(true)
             placeholderNode.insertAfter(targetParentNode)
             newSelectionTarget = placeholderNode
+          }
+
+          const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
+
+          if (isGrandParentListWrapper) {
+            nextList = nextList.findOne('ul, ol')
+          }
+
+          CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
+          if (nextList && (nextList.type === CKEDITOR.NODE_ELEMENT && (nextList.is('ul') || nextList.is('ol')))) {
+            CKEDITOR.plugins.list.updateListLabels(nextList, doc, editor)
           }
         }
 
@@ -667,6 +701,9 @@
 
         if (firstChild || lastChild) {
           newBlock[firstChild ? 'insertBefore' : 'insertAfter'](targetParentNode)
+
+          const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
+          CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
         } else {
           // If the empty block is neither first nor last child
           // then split the list and put the new block between
@@ -680,7 +717,19 @@
           //     </ul>                   =>           <li>y</li>
           //                             =>       </ul>
           block.breakParent(targetParentNode)
+          let nextList = block.getNext()
           newBlock.insertAfter(targetParentNode)
+
+          const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
+
+          if (isGrandParentListWrapper) {
+            nextList = nextList.find('ul, ol')
+          }
+
+          CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
+          if (nextList.is('ul') || nextList.is('ol')) {
+            CKEDITOR.plugins.list.updateListLabels(nextList, doc, editor)
+          }
         }
 
         block.remove()

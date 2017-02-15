@@ -9,18 +9,22 @@ import {
 import { toRoman, toArabic } from 'roman-numerals'
 import _ from 'lodash'
 
-export const ordinalParseRegex = /^(\s*(?:\(|Class|CHAPTER)?\s*)([a-zA-Z0-9\.]+?)(\s*?(?:[\.\)])?.*?)$/iu
+export const ordinalParseRegex = /^(\s*(?:\(|Class|CHAPTER)?\s*(?:[a-zA-Z0-9]+\.)*)(?:([a-zA-Z0-9]+))(\s*?(?:[\.\)])?.*?)$/iu
 export const ORDINAL_TYPE_NUMBER = 'number'
 export const ORDINAL_TYPE_ALPHA_LOWER = 'lower-alpha'
 export const ORDINAL_TYPE_ALPHA_UPPER = 'upper-alpha'
 export const ORDINAL_TYPE_ROMAN_LOWER = 'lower-roman'
 export const ORDINAL_TYPE_ROMAN_UPPER = 'upper-roman'
+export const ORDINAL_TYPE_SECTION = 'section'
+export const ORDINAL_TYPE_DEFAULT = ORDINAL_TYPE_SECTION
+
 export const ORDINAL_TYPES = {
   ORDINAL_TYPE_NUMBER,
   ORDINAL_TYPE_ALPHA_LOWER,
   ORDINAL_TYPE_ALPHA_UPPER,
   ORDINAL_TYPE_ROMAN_LOWER,
-  ORDINAL_TYPE_ROMAN_UPPER
+  ORDINAL_TYPE_ROMAN_UPPER,
+  ORDINAL_TYPE_SECTION
 }
 export const ORDINAL_CASE_UPPER = 'upper'
 export const ORDINAL_CASE_LOWER = 'lower'
@@ -44,7 +48,7 @@ class IccListPlugin {
 
   getOrdinalTypeFromListItem (listNode) {
     const firstLi = listNode.is('li') ? listNode : listNode.findOne('> li')
-    const labelNode = firstLi.findOne('> p > span.label')
+    const labelNode = firstLi.findOne('> p span.label')
 
     if (!labelNode) {
       return
@@ -52,13 +56,13 @@ class IccListPlugin {
 
     const labelParts = this.parseOrdinal(labelNode.getHtml())
 
-    return labelParts ? this.getOrdinalType(labelParts.ordinal) : null
+    return labelParts ? this.getOrdinalType(labelParts.ordinal, labelParts.prefix) : null
   }
 
-  getOrdinalType (ordinal) {
+  getOrdinalType (ordinal, prefix = null) {
     // Check if ordinal is number.
     if (!isNaN(ordinal)) {
-      return ORDINAL_TYPE_NUMBER
+      return ORDINAL_TYPE_SECTION
     }
 
     // Determine if ordinal is uppercase or lowercase.
@@ -77,7 +81,8 @@ class IccListPlugin {
   convertNumberToOrdinal (num, ordinalType) {
     switch (ordinalType) {
       case ORDINAL_TYPE_NUMBER:
-        return num
+      case ORDINAL_TYPE_SECTION:
+        return num.toString()
 
       case ORDINAL_TYPE_ALPHA_LOWER:
       case ORDINAL_TYPE_ALPHA_UPPER:
@@ -101,6 +106,7 @@ class IccListPlugin {
 
     switch (ordinalType) {
       case ORDINAL_TYPE_NUMBER:
+      case ORDINAL_TYPE_SECTION:
         return ordinal
 
       case ORDINAL_TYPE_ALPHA_LOWER:
@@ -154,7 +160,17 @@ class IccListPlugin {
    * @returns {*}
    */
   replaceOrdinal (label, ordinal, replacementPattern = '$1{0}$3') {
-    return label.replace(ordinalParseRegex, replacementPattern.replace(/\{0}/, _.escapeRegExp(ordinal)))
+    return label.replace(ordinalParseRegex, replacementPattern.replace(/\{0\}/, ordinal))
+  }
+
+  /**
+   * @param {string} label
+   * @param {string} prefix
+   * @param {string} replacementPattern
+   * @returns {*}
+   */
+  replacePrefix (label, prefix, replacementPattern = '{0}$2$3') {
+    return label.replace(ordinalParseRegex, replacementPattern.replace(/\{0\}/, prefix))
   }
 
   parseOrdinal (text) {
@@ -172,7 +188,8 @@ class IccListPlugin {
       prefix,
       ordinal,
       suffix,
-      replaceOrdinal: ordinal => this.replaceOrdinal(match, ordinal)
+      replaceOrdinal: ordinal => this.replaceOrdinal(match, ordinal),
+      replacePrefix: prefix => this.replacePrefix(match, prefix)
     }
   }
 
@@ -205,7 +222,112 @@ class IccListPlugin {
     return num
   }
 
-  updateOrderedListLabels (listNode, doc) {
+  /**
+   * @param {CKEDITOR.dom.element} listItem
+   *
+   * @returns {boolean}
+   */
+  isInOrderedList (listItem) {
+    const ascendant = listItem.getAscendant({ul: 1, ol: 1})
+
+    return (ascendant && ascendant.is('ol'))
+  }
+
+  /**
+   * @param {CKEDITOR.dom.element} listItem
+   *
+   * @returns {*|CKEDITOR.dom.node|CKEDITOR.htmlParser.element}
+   */
+  getParentListNode (listItem) {
+    return listItem.getAscendant({ul: 1, ol: 1})
+  }
+
+  /**
+   * @param {CKEDITOR.dom.element}  listNode
+   * @param {CKEDITOR.dom.document} doc
+   */
+  findOrCreateLabelNode(listNode, doc) {
+    let pNode = listNode.findOne('p')
+
+    // Verify the paragraph tag is in this list item, not a child.
+    if (pNode && pNode.getAscendant('li') && !pNode.getAscendant('li').equals(listNode)) {
+      pNode = null
+    }
+
+    if (!pNode) {
+      pNode = doc.createElement('p')
+      if (listNode.getFirst()) {
+        pNode.insertBefore(listNode.getFirst())
+      } else {
+        pNode.appendTo(listNode)
+      }
+    }
+
+    return pNode
+  }
+
+  /**
+   * This takes the parsed label parts and updates the ordinal, and if necessary, the prefix.
+   *
+   * @param {Object} labelParts
+   * @param {String} prefix
+   * @param {String} ordinal
+   */
+  updateLabel (labelParts, prefix, ordinal) {
+    let newLabel = labelParts.replaceOrdinal(ordinal)
+
+    if (labelParts.prefix !== prefix) {
+      labelParts = this.parseOrdinal(newLabel)
+      newLabel = labelParts.replacePrefix(prefix)
+    }
+
+    return newLabel
+  }
+
+  /**
+   * Looks for an li ascendant of the given child and attempts to find its label.
+   * Note that if listItem is a fragment, the ascendant may not be present.
+   *
+   * @param {CKEDITOR.dom.element}  listItem
+   * @param {CKEDITOR.dom.document} doc
+   */
+  findAscendantOrdinal (listItem, doc) {
+    const listItemAscendant = listItem.getAscendant('li')
+    let ascendantOrdinal = false
+
+    if (listItemAscendant && listItemAscendant.is('li')) {
+      let pNode = this.findOrCreateLabelNode(listItemAscendant, doc)
+      let labelNode = pNode ? pNode.findOne('span.label') : null
+
+      ascendantOrdinal = labelNode ? labelNode.getHtml() : false
+    }
+
+    return ascendantOrdinal
+  }
+
+  /**
+   * For section-style ordinals, attempt to find the parent's ordinal to use as a prefix.
+   * If it can't be found and we're indenting, and the label already has a prefix, keep it.
+   * Otherwise, reset the prefix to an empty string.
+   *
+   * @param {CKEDITOR.dom.element}  listItem
+   * @param {CKEDITOR.dom.document} doc
+   * @param {String}                prefix
+   * @param {boolean}               indent
+   */
+  getSectionPrefix (listItem, doc, prefix, indent) {
+    const ascendantOrdinal = this.findAscendantOrdinal(listItem, doc)
+
+    return ascendantOrdinal || (indent && prefix !== '' ? prefix : '')
+  }
+
+  /**
+   * @param {CKEDITOR.dom.element}  listNode
+   * @param {CKEDITOR.dom.document} doc
+   * @param {CKEDITOR.editor}       editor
+   * @param {boolean}               indent
+   */
+  updateOrderedListLabels (listNode, doc, editor, indent = false) {
     if (!listNode.is('ol')) {
       return
     }
@@ -213,39 +335,42 @@ class IccListPlugin {
     const length = listNode.getChildCount()
 
     // Try to determine the ordinal type.
-    const ordinalType = this.getOrdinalTypeFromListItem(listNode)
+    let ordinalType = listNode.getCustomData('listType')
+    if (!ordinalType) {
+      ordinalType = this.getOrdinalTypeFromListItem(listNode)
+    }
 
     for (let i = 0; i < length; i++) {
       const child = listNode.getChild(i)
+      const ascendantOrdinal = this.findAscendantOrdinal(child, doc)
 
       let newOrdinal
       try {
         newOrdinal = this.convertNumberToOrdinal(i + 1, ordinalType)
       } catch (e) {
-        newOrdinal = i + 1
+        newOrdinal = (i + 1).toString()
       }
 
-      let pNode = child.findOne('> p')
-      let labelNode
+      let pNode = this.findOrCreateLabelNode(child, doc)
+      let labelNode = pNode ? pNode.findOne('span.label') : null
 
-      if (pNode) {
-        labelNode = pNode.findOne('> span.label')
+      if (labelNode) {
+        const labelParts = this.parseOrdinal(labelNode.getHtml())
+        const newPrefix = ordinalType === ORDINAL_TYPE_SECTION
+          ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
+          : ''
+
+        labelNode.setHtml(this.updateLabel(labelParts, newPrefix, newOrdinal))
       } else {
-        pNode = doc.createElement('p')
-        if (child.getFirst()) {
-          pNode.insertBefore(child.getFirst())
-        } else {
-          pNode.appendTo(child)
-        }
-      }
-
-      if (!labelNode) {
         labelNode = doc.createElement('span')
         labelNode.addClass('label')
 
-        const labelParts = this.parseOrdinal(newOrdinal)
+        const labelParts = this.parseOrdinal(newOrdinal + '.')
+        const newPrefix = ordinalType === ORDINAL_TYPE_SECTION
+          ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
+          : ''
 
-        labelNode.appendText(labelParts.replaceOrdinal(newOrdinal))
+        labelNode.appendText(this.updateLabel(labelParts, newPrefix, newOrdinal))
         if (pNode.getFirst()) {
           labelNode.insertBefore(pNode.getFirst())
         } else {
@@ -257,11 +382,23 @@ class IccListPlugin {
       }
 
       const childrenCount = child.getChildCount()
-      for (let k = 0; k < childrenCount.length; k++) {
+      for (let k = 0; k < childrenCount; k++) {
         if (child.getChild(k).is('ol')) {
-          this.updateOrderedListLabels(child.getChild(k), doc)
+          this.updateOrderedListLabels(child.getChild(k), doc, editor)
+        } else if (child.getChild(k).is('ul')) {
+          this.updateUnorderedListLabels(child.getChild(k), doc, editor)
         }
       }
+    }
+  }
+
+  updateListLabels (listNode, doc, editor, indent = false) {
+    if (listNode.is('ol')) {
+      this.updateOrderedListLabels(listNode, doc, editor, indent)
+    } else if (listNode.is('ul')) {
+      this.updateUnorderedListLabels(listNode, doc, editor)
+    } else {
+      throw new Error('Node is not a list.')
     }
   }
 
@@ -322,6 +459,8 @@ class IccListPlugin {
       for (let k = 0; k < childrenCount; k++) {
         if (child.getChild(k).is('ul')) {
           this.updateUnorderedListLabels(child.getChild(k), doc, editor)
+        } else if (child.getChild(k).is('ol')) {
+          this.updateOrderedListLabels(child.getChild(k), doc, editor)
         }
       }
     }
@@ -375,6 +514,14 @@ class IccListPlugin {
     return baseArray
   }
 
+  /**
+   * @param {Array}  listArray
+   * @param {Object} database
+   * @param {int}    baseIndex
+   * @param {String} paragraphMode
+   * @param dir
+   * @returns {*}
+   */
   arrayToList (listArray, database, baseIndex, paragraphMode, dir) {
     if (!baseIndex) {
       baseIndex = 0
@@ -382,7 +529,6 @@ class IccListPlugin {
 
     if (!listArray || listArray.length < baseIndex + 1) { return null }
 
-    let i
     const doc = listArray[baseIndex].parent.getDocument()
     const retval = new CKEDITOR.dom.documentFragment(doc)
     let rootNode = null
@@ -400,184 +546,47 @@ class IccListPlugin {
       orgDir = item.element.getDirection(1)
 
       if (item.indent == indentLevel) {
-        if (!rootNode || listArray[currentIndex].parent.getName() != rootNode.getName()) {
-          rootNode = listArray[currentIndex].parent.clone(false, 1)
-          dir && rootNode.setAttribute('dir', dir)
-          retval.append(rootNode)
-        }
-
-        currentListItem = rootNode.append(item.element.clone(0, 1))
-
-        if (orgDir != rootNode.getDirection(1)) {
-          currentListItem.setAttribute('dir', orgDir)
-        }
-
-        for (i = 0; i < item.contents.length; i++) {
-          currentListItem.append(item.contents[i].clone(1, 1))
-        }
+        ({ rootNode, currentListItem } = this.toListWithEqualIndent(
+          rootNode,
+          listArray,
+          currentIndex,
+          dir,
+          retval,
+          currentListItem,
+          item,
+          orgDir,
+        ))
 
         currentIndex++
       } else if (item.indent == Math.max(indentLevel, 0) + 1) {
-        // Maintain original direction (#6861).
-        const currDir = listArray[currentIndex - 1].element.getDirection(1)
-        const listData = CKEDITOR.plugins.list.arrayToList(listArray, null, currentIndex, paragraphMode, currDir != orgDir ? orgDir : null)
-
-        // If the next block is an <li> with another list tree as the first
-        // child, we'll need to append a filler (<br>/NBSP) or the list item
-        // wouldn't be editable. (#6724)
-        if (!currentListItem.getChildCount() && CKEDITOR.env.needsNbspFiller && doc.$.documentMode <= 7) {
-          currentListItem.append(doc.createText('\xa0'))
-        }
-
-        currentListItem.append(listData.listNode)
-        currentIndex = listData.nextIndex
+        currentIndex = this.toListWithIndent(
+          listArray,
+          currentIndex,
+          paragraphMode,
+          orgDir,
+          currentListItem,
+          doc
+        )
       } else if (item.indent == -1 && !baseIndex && itemGrandParent) {
-        if (listNodeNames[itemGrandParent.getName()]) {
-          currentListItem = item.element.clone(false, true)
-          if (orgDir != itemGrandParent.getDirection(1)) { currentListItem.setAttribute('dir', orgDir) }
-        } else {
-          currentListItem = new CKEDITOR.dom.documentFragment(doc)
-        }
-
-        // Migrate all children to the new container,
-        // apply the proper text direction.
-        const dirLoose = itemGrandParent.getDirection(1) != orgDir
-
-        const li = item.element
-        const className = li.getAttribute('class')
-        const style = li.getAttribute('style')
-
-        const needsBlock = currentListItem.type == CKEDITOR.NODE_DOCUMENT_FRAGMENT && (paragraphMode != CKEDITOR.ENTER_BR || dirLoose || style || className)
-
-        var child
-        const count = item.contents.length
-        let cachedBookmark
-
-        for (i = 0; i < count; i++) {
-          child = item.contents[i]
-
-          // Append bookmark if we can, or cache it and append it when we'll know
-          // what to do with it. Generally - we want to keep it next to its original neighbour.
-          // Exception: if bookmark is the only child it hasn't got any neighbour, so handle it normally
-          // (wrap with block if needed).
-          if (bookmarks(child) && count > 1) {
-            // If we don't need block, it's simple - append bookmark directly to the current list item.
-            if (!needsBlock) {
-              currentListItem.append(child.clone(1, 1))
-            } else {
-              cachedBookmark = child.clone(1, 1)
-            }
-          }
-          // Block content goes directly to the current list item, without wrapping.
-          else if (child.type == CKEDITOR.NODE_ELEMENT && child.isBlockBoundary()) {
-            // Apply direction on content blocks.
-            if (dirLoose && !child.getDirection()) { child.setAttribute('dir', orgDir) }
-
-            inheritInlineStyles(li, child)
-
-            className && child.addClass(className)
-
-            // Close the block which we started for inline content.
-            block = null
-            // Append bookmark directly before current child.
-            if (cachedBookmark) {
-              currentListItem.append(cachedBookmark)
-              cachedBookmark = null
-            }
-            // Append this block element to the list item.
-            currentListItem.append(child.clone(1, 1))
-          }
-          // Some inline content was found - wrap it with block and append that
-          // block to the current list item or append it to the block previously created.
-          else if (needsBlock) {
-            // Establish new block to hold text direction and styles.
-            if (!block) {
-              block = doc.createElement(paragraphName)
-              currentListItem.append(block)
-              dirLoose && block.setAttribute('dir', orgDir)
-            }
-
-            // Copy over styles to new block;
-            style && block.setAttribute('style', style)
-            className && block.setAttribute('class', className)
-
-            // Append bookmark directly before current child.
-            if (cachedBookmark) {
-              block.append(cachedBookmark)
-              cachedBookmark = null
-            }
-
-            block.append(child.clone(1, 1))
-          }
-          // E.g. BR mode - inline content appended directly to the list item.
-          else {
-            currentListItem.append(child.clone(1, 1))
-          }
-        }
-
-        // No content after bookmark - append it to the block if we had one
-        // or directly to the current list item if we finished directly in the current list item.
-        if (cachedBookmark) {
-          (block || currentListItem).append(cachedBookmark)
-          cachedBookmark = null
-        }
-
-        // Remove label content is found.
-        let labelElement
-        const childrenCount = currentListItem.$.children.length
-
-        for (let k = 0; k < childrenCount; k++) {
-          const child = currentListItem.$.children[k]
-          // Find the p tag
-          if (child.nodeName.toLowerCase() === 'p') {
-            const subChildrenCount = child.children.length
-            // Loop through children to find span.label.
-            for (let j = 0; j < subChildrenCount; j++) {
-              const subChild = child.children[j]
-
-              if (
-                subChild.nodeName.toLowerCase() === 'span' &&
-                subChild.attributes['class'] &&
-                subChild.attributes['class'].nodeValue.includes('label')
-              ) {
-                // Remove the list item's label.
-                child.removeChild(subChild)
-                break
-              }
-            }
-          }
-        }
-
-        if (labelElement) {
-          labelElement.remove()
-        }
-
-        if (currentListItem.type == CKEDITOR.NODE_DOCUMENT_FRAGMENT && currentIndex != listArray.length - 1) {
-          let last
-
-          // Remove bogus <br> if this browser uses them.
-          if (CKEDITOR.env.needsBrFiller) {
-            last = currentListItem.getLast()
-            if (last && last.type == CKEDITOR.NODE_ELEMENT && last.is('br')) {
-              last.remove()
-            }
-          }
-
-          // If the last element is not a block, append <br> to separate merged list items.
-          last = currentListItem.getLast(nonEmpty)
-          if (!(last && last.type == CKEDITOR.NODE_ELEMENT && last.is(CKEDITOR.dtd.$block))) {
-            currentListItem.append(doc.createElement('br'))
-          }
-        }
-
-        const currentListItemName = currentListItem.$.nodeName.toLowerCase()
-        if (currentListItemName == 'div' || currentListItemName == 'p') {
-          currentListItem.appendBogus()
-        }
-
-        retval.append(currentListItem)
-        rootNode = null
-        currentIndex++
+        ({
+          currentListItem,
+          block,
+          currentIndex,
+          rootNode
+        } = this.toListWithOutdent(
+          itemGrandParent,
+          currentListItem,
+          item,
+          orgDir,
+          doc,
+          paragraphMode,
+          block,
+          paragraphName,
+          currentIndex,
+          listArray,
+          retval,
+          rootNode
+        ))
       } else {
         return null
       }
@@ -606,6 +615,242 @@ class IccListPlugin {
     }
 
     return { listNode: retval, nextIndex: currentIndex }
+  }
+
+  /**
+   * @param {CKEDITOR.dom.element} itemGrandParent
+   * @param {CKEDITOR.dom.element|CKEDITOR.dom.documentFragment} currentListItem
+   * @param {Object} item
+   * @param {CKEDITOR.dom.element} item.element
+   * @param {String} orgDir
+   * @param {CKEDITOR.dom.document} doc
+   * @param paragraphMode
+   * @param block
+   * @param paragraphName
+   * @param currentIndex
+   * @param listArray
+   * @param retval
+   * @param rootNode
+   * @returns {{currentListItem: *, block: *, currentIndex: *, rootNode: null}}
+   */
+  toListWithOutdent (itemGrandParent, currentListItem, item, orgDir, doc, paragraphMode, block, paragraphName, currentIndex, listArray, retval, rootNode) {
+    // Check if grand parent is ol or ul
+    if (listNodeNames[itemGrandParent.getName()]) {
+      currentListItem = item.element.clone(false, true)
+      if (orgDir != itemGrandParent.getDirection(1)) {
+        currentListItem.setAttribute('dir', orgDir)
+      }
+    } else {
+      currentListItem = new CKEDITOR.dom.documentFragment(doc)
+    }
+
+    // Migrate all children to the new container,
+    // apply the proper text direction.
+    const dirLoose = itemGrandParent.getDirection(1) != orgDir
+
+    const li = item.element
+    const className = li.getAttribute('class')
+    const style = li.getAttribute('style')
+
+    const needsBlock = currentListItem.type == CKEDITOR.NODE_DOCUMENT_FRAGMENT && (paragraphMode != CKEDITOR.ENTER_BR || dirLoose || style || className)
+
+    var child
+    const count = item.contents.length
+    let cachedBookmark
+
+    for (let i = 0; i < count; i++) {
+      child = item.contents[i]
+
+      // Append bookmark if we can, or cache it and append it when we'll know
+      // what to do with it. Generally - we want to keep it next to its original neighbour.
+      // Exception: if bookmark is the only child it hasn't got any neighbour, so handle it normally
+      // (wrap with block if needed).
+      if (bookmarks(child) && count > 1) {
+        // If we don't need block, it's simple - append bookmark directly to the current list item.
+        if (!needsBlock) {
+          currentListItem.append(child.clone(1, 1))
+        } else {
+          cachedBookmark = child.clone(1, 1)
+        }
+      }
+      // Block content goes directly to the current list item, without wrapping.
+      else if (child.type == CKEDITOR.NODE_ELEMENT && child.isBlockBoundary()) {
+        // Apply direction on content blocks.
+        if (dirLoose && !child.getDirection()) {
+          child.setAttribute('dir', orgDir)
+        }
+
+        inheritInlineStyles(li, child)
+
+        className && child.addClass(className)
+
+        // Close the block which we started for inline content.
+        block = null
+        // Append bookmark directly before current child.
+        if (cachedBookmark) {
+          currentListItem.append(cachedBookmark)
+          cachedBookmark = null
+        }
+        // Append this block element to the list item.
+        currentListItem.append(child.clone(1, 1))
+      }
+      // Some inline content was found - wrap it with block and append that
+      // block to the current list item or append it to the block previously created.
+      else if (needsBlock) {
+        // Establish new block to hold text direction and styles.
+        if (!block) {
+          block = doc.createElement(paragraphName)
+          currentListItem.append(block)
+          dirLoose && block.setAttribute('dir', orgDir)
+        }
+
+        // Copy over styles to new block;
+        style && block.setAttribute('style', style)
+        className && block.setAttribute('class', className)
+
+        // Append bookmark directly before current child.
+        if (cachedBookmark) {
+          block.append(cachedBookmark)
+          cachedBookmark = null
+        }
+
+        block.append(child.clone(1, 1))
+      } else {
+        // E.g. BR mode - inline content appended directly to the list item.
+        currentListItem.append(child.clone(1, 1))
+      }
+    }
+
+    // No content after bookmark - append it to the block if we had one
+    // or directly to the current list item if we finished directly in the current list item.
+    if (cachedBookmark) {
+      (block || currentListItem).append(cachedBookmark)
+      cachedBookmark = null
+    }
+
+    // Remove label content is found.
+    let labelElement
+    const childrenCount = currentListItem.$.children.length
+
+    for (let k = 0; k < childrenCount; k++) {
+      const child = currentListItem.$.children[k]
+      // Find the p tag
+      if (child.nodeName.toLowerCase() === 'p') {
+        const subChildrenCount = child.children.length
+        // Loop through children to find span.label.
+        for (let j = 0; j < subChildrenCount; j++) {
+          const subChild = child.children[j]
+
+          if (
+            subChild.nodeName.toLowerCase() === 'span' &&
+            subChild.attributes['class'] &&
+            subChild.attributes['class'].nodeValue.includes('label')
+          ) {
+            // Remove the list item's label.
+            child.removeChild(subChild)
+            break
+          }
+        }
+      }
+    }
+
+    if (labelElement) {
+      labelElement.remove()
+    }
+
+    if (currentListItem.type == CKEDITOR.NODE_DOCUMENT_FRAGMENT && currentIndex != listArray.length - 1) {
+      let last
+
+      // Remove bogus <br> if this browser uses them.
+      if (CKEDITOR.env.needsBrFiller) {
+        last = currentListItem.getLast()
+        if (last && last.type == CKEDITOR.NODE_ELEMENT && last.is('br')) {
+          last.remove()
+        }
+      }
+
+      // If the last element is not a block, append <br> to separate merged list items.
+      last = currentListItem.getLast(nonEmpty)
+      if (!(last && last.type == CKEDITOR.NODE_ELEMENT && last.is(CKEDITOR.dtd.$block))) {
+        currentListItem.append(doc.createElement('br'))
+      }
+    }
+
+    const currentListItemName = currentListItem.$.nodeName.toLowerCase()
+    if (currentListItemName == 'div' || currentListItemName == 'p') {
+      currentListItem.appendBogus()
+    }
+
+    retval.append(currentListItem)
+    rootNode = null
+    currentIndex++
+
+    return {
+      currentListItem,
+      block,
+      currentIndex,
+      rootNode
+    }
+  }
+
+  toListWithIndent (listArray, currentIndex, paragraphMode, orgDir, currentListItem, doc) {
+    // Maintain original direction (#6861).
+    const currDir = listArray[currentIndex - 1].element.getDirection(1)
+    const listData = CKEDITOR.plugins.list.arrayToList(
+      listArray,
+      null,
+      currentIndex,
+      paragraphMode,
+      currDir != orgDir ? orgDir : null
+    )
+
+    // If the next block is an <li> with another list tree as the first
+    // child, we'll need to append a filler (<br>/NBSP) or the list item
+    // wouldn't be editable. (#6724)
+    if (!currentListItem.getChildCount() && CKEDITOR.env.needsNbspFiller && doc.$.documentMode <= 7) {
+      currentListItem.append(doc.createText('\xa0'))
+    }
+
+    currentListItem.append(listData.listNode)
+    currentIndex = listData.nextIndex
+
+    return currentIndex
+  }
+
+  toListWithEqualIndent (rootNode, listArray, currentIndex, dir, retval, currentListItem, item, orgDir) {
+    // Check if we need to create parent node for this list item.
+    if (!rootNode || listArray[currentIndex].parent.getName() != rootNode.getName()) {
+      rootNode = listArray[currentIndex].parent.clone(false, 1)
+      dir && rootNode.setAttribute('dir', dir)
+
+      // Check if grandparent is list div wrapper (div.list), and if indenting to base indent level.
+      if (
+        listArray[currentIndex].indent === 0 &&
+        listArray[currentIndex].grandparent &&
+        listArray[currentIndex].grandparent.getName() === 'div' &&
+        listArray[currentIndex].grandparent.hasClass('list')
+      ) {
+        // Grandparent is div.list, so clone that, append rootNode, and then append the div.list to retval.
+        const wrapperNode = listArray[currentIndex].grandparent.clone(false, true)
+        wrapperNode.append(rootNode)
+        retval.append(wrapperNode)
+      } else {
+        // Grandparent is not div.list, so append the list node to retval like normal.
+        retval.append(rootNode)
+      }
+    }
+
+    currentListItem = rootNode.append(item.element.clone(0, 1))
+
+    if (orgDir != rootNode.getDirection(1)) {
+      currentListItem.setAttribute('dir', orgDir)
+    }
+
+    for (let i = 0; i < item.contents.length; i++) {
+      currentListItem.append(item.contents[i].clone(1, 1))
+    }
+
+    return {rootNode, currentListItem}
   }
 }
 

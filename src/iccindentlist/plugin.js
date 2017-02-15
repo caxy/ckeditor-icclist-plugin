@@ -196,7 +196,54 @@
       }
 
       if (newList) {
-        newList.listNode.replace(listNode)
+        // Update the list labels - renumbering for ordered lists and removing labels for unordered.
+        const newListChildCount = newList.listNode.getChildCount()
+
+        // Loop over newList.listNode's children.
+        for (let k = 0; k < newListChildCount; k++) {
+          const listNodeChild = newList.listNode.getChild(k)
+
+
+          // If the child node is <div class="list">, then loop over its children to find lists.
+          // Otherwise, we simply use an array with listNodeChild as the only element to loop over.
+          let childListNodes = [listNodeChild]
+          if (
+            listNodeChild && listNodeChild.type === CKEDITOR.NODE_ELEMENT &&
+            listNodeChild.is('div') && listNodeChild.hasClass('list')
+          ) {
+            // Reset childListNodes array so it doesn't include listNodeChild.
+            childListNodes = []
+            // Loop over the div's children and add them to childListNodes array.
+            const divListWrapperChildCount = listNodeChild.getChildCount()
+            for (let l = 0; l < divListWrapperChildCount; l++) {
+              childListNodes.push(listNodeChild.getChild(l))
+            }
+          }
+
+          // Loop over the nodes in childListNodes array, and call updateListLabels on any ul or ol elements.
+          for (let childIndex = 0; childIndex < childListNodes.length; childIndex++) {
+            if (
+              childListNodes[childIndex] &&
+              childListNodes[childIndex].type === CKEDITOR.NODE_ELEMENT &&
+              (childListNodes[childIndex].is('ol') || childListNodes[childIndex].is('ul'))
+            ) {
+              CKEDITOR.plugins.list.updateListLabels(childListNodes[childIndex], range.document, editor, that.isIndent)
+            }
+          }
+        }
+
+        // If the list node's parent is div.list wrapper, then replace the entire wrapper element,
+        // since the result of arrayToList will return a doc fragment of div.list elements to replace it.
+        let listNodeToReplace = listNode
+        if (
+          listNode.getParent() && listNode.getParent().type === CKEDITOR.NODE_ELEMENT &&
+          listNode.getParent().is('div') &&
+          listNode.getParent().hasClass('list')
+        ) {
+          listNodeToReplace = listNode.getParent()
+        }
+
+        newList.listNode.replace(listNodeToReplace)
       }
 
       // Move the nested <li> to be appeared after the parent.
@@ -217,6 +264,12 @@
           }
 
           li.insertAfter(parentLiElement)
+        }
+
+        const parentListNode = parentLiElement.getAscendant({ul: 1, ol: 1})
+
+        if (parentListNode) {
+          CKEDITOR.plugins.list.updateListLabels(parentListNode, range.document, editor)
         }
       }
 

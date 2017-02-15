@@ -1,6 +1,7 @@
 /*global CKEDITOR*/
 import _ from 'lodash'
 import { toArabic, toRoman } from 'roman-numerals'
+import { ORDINAL_TYPE_DEFAULT } from './IccListPlugin'
 
 export const whitespaces = CKEDITOR.dom.walker.whitespaces()
 export const bookmarks = CKEDITOR.dom.walker.bookmark()
@@ -114,6 +115,12 @@ export const joinNextLineToCursor = (editor, cursor, nextCursor) => {
     }
   }
 
+  // Remove label, if exists.
+  const first = frag.getFirst()
+  if (first && first.type === CKEDITOR.NODE_ELEMENT && first.is('span') && first.hasClass('label')) {
+    first.remove()
+  }
+
   // Kill the tail br in extracted.
   last = frag.getLast()
   if (last && last.type == CKEDITOR.NODE_ELEMENT && last.is('br')) {
@@ -124,7 +131,9 @@ export const joinNextLineToCursor = (editor, cursor, nextCursor) => {
   const nextNode = cursor.startContainer.getChild(cursor.startOffset)
   if (nextNode) {
     frag.insertBefore(nextNode)
-  } else { cursor.startContainer.append(frag) }
+  } else {
+    cursor.startContainer.append(frag)
+  }
 
   // Move the sub list nested in the next list item.
   if (nextLi) {
@@ -213,6 +222,9 @@ export const createListNode = (doc, type) => {
   listNode.addClass('no_mark')
 
   divNode.append(listNode)
+
+  // Set the list type, using default ordinal type.
+  listNode.setCustomData('listType', ORDINAL_TYPE_DEFAULT)
 
   return divNode
 }
@@ -424,14 +436,6 @@ export const createList = ({config}, groupObj, listsCreated, type) => {
   if (insertAnchor) {
     listNodeWrapper.insertBefore(insertAnchor)
   } else { listNodeWrapper.appendTo(commonParent) }
-
-  // Select the new list.
-  // if (listItem) {
-  //   const range = editor.createRange()
-  //   range.selectNodeContents(editor.editable())
-  //   range.moveToElementEditEnd(listItem)
-  //   range.select()
-  // }
 }
 
 export const removeList = (editor, {root, contents}, database) => {

@@ -47,10 +47,41 @@ class IccListPluginConfiguration {
       )
     }
 
+    // Add styles
+    editor.addContentsCss(this.path + 'style/icclist.css')
+
     const backspaceDelete = new BackspaceDelete(editor)
 
     // Handled backspace/del key to join list items.
     editor.on('key', backspaceDelete.keyListener.bind(backspaceDelete))
+
+    // Exit div.list if that's where the cursor is.
+    editor.on('key', ({ data: { domEvent }, cancel }) => {
+      // Use getKey directly in order to ignore modifiers.
+      // Justification: http://dev.ckeditor.com/ticket/11861#comment:13
+      const key = domEvent.getKey()
+
+      // ESC
+      if (editor.mode !== 'wysiwyg' || key !== 27) {
+        return
+      }
+
+      const sel = editor.getSelection()
+      const range = sel.getRanges()[0]
+
+      if (!range || !range.collapsed) {
+        return
+      }
+
+      const start = range.startContainer
+      const isListContainer = start.type == CKEDITOR.NODE_ELEMENT && start.is('div') && start.hasClass('list')
+      const cursor = range.clone()
+
+      if (start && isListContainer) {
+        cursor.moveToPosition(start, CKEDITOR.POSITION_AFTER_END)
+        cursor.select()
+      }
+    })
   }
 }
 

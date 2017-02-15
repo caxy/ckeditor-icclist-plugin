@@ -116,16 +116,28 @@ class BackspaceDelete {
         }
 
         joinWith = previous
-        // Place cursor at the end of previous block.
-        cursor.moveToElementEditEnd(joinWith)
+        if (joinWith) {
+          // Place cursor at the end of previous block.
+          cursor.moveToElementEditEnd(joinWith)
 
-        // And then just before end of closest block element.
-        cursor.moveToPosition(cursor.endPath().block, CKEDITOR.POSITION_BEFORE_END)
+          // And then just before end of closest block element.
+          cursor.moveToPosition(cursor.endPath().block, CKEDITOR.POSITION_BEFORE_END)
+        }
       }
     }
 
     if (joinWith) {
       joinNextLineToCursor(this.editor, cursor, range)
+
+      // Renumber the list if an ordered list.
+      if (CKEDITOR.plugins.list.isInOrderedList(joinWith)) {
+        CKEDITOR.plugins.list.updateOrderedListLabels(
+          CKEDITOR.plugins.list.getParentListNode(joinWith),
+          editable.getDocument(),
+          this.editor
+        )
+      }
+
       cancel()
     } else {
       const list = path.contains(listNodeNames)
@@ -278,6 +290,17 @@ class BackspaceDelete {
         }
 
         joinNextLineToCursor(this.editor, cursor, nextLine)
+
+        // Renumber the list if an ordered list.
+        const listNode = cursor.startContainer.getAscendant({ul: 1, ol: 1})
+        if (listNode && listNode.is('ol')) {
+          CKEDITOR.plugins.list.updateOrderedListLabels(
+            listNode,
+            editable.getDocument(),
+            this.editor
+          )
+        }
+
         cancel()
       }
     } else {
@@ -308,6 +331,16 @@ class BackspaceDelete {
           nextLine = range.clone()
           nextLine.moveToElementEditStart(next)
           joinNextLineToCursor(this.editor, cursor, nextLine)
+
+          // Renumber the list if an ordered list.
+          if (CKEDITOR.plugins.list.isInOrderedList(next)) {
+            CKEDITOR.plugins.list.updateOrderedListLabels(
+              CKEDITOR.plugins.list.getParentListNode(next),
+              editable.getDocument(),
+              this.editor
+            )
+          }
+
           cancel()
         }
       }
