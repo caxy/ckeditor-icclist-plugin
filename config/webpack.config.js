@@ -1,6 +1,7 @@
 const project = require('./project.config');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const _ = require('lodash');
+const webpack = require('webpack');
 
 const webpackConfig = {
     name: 'client',
@@ -8,18 +9,25 @@ const webpackConfig = {
     devtool: false,
     resolve: {
         modules: [
-            project.paths.client()
+            project.paths.client(),
+            'node_modules'
         ]
     },
     module: {}
 };
 
+// ------------------------------------
+// Output
+// ------------------------------------
 webpackConfig.output = {
     filename: `plugin.js`,
     path: project.paths.dist(),
     publicPath: '/'
 };
 
+// ------------------------------------
+// Plugins
+// ------------------------------------
 webpackConfig.plugins = [
     new CopyWebpackPlugin([
         {
@@ -27,7 +35,14 @@ webpackConfig.plugins = [
             to: project.paths.dist(),
             ignore: ['*.js']
         }
-    ])
+    ]),
+    new webpack.optimize.UglifyJsPlugin({
+        compress: {
+            unused: true,
+            dead_code: true,
+            warnings: false
+        }
+    })
 ];
 
 // ------------------------------------

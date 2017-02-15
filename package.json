@@ -11,7 +11,10 @@
     "compile": "yarn run clean && webpack --config config/webpack.config"
   },
   "dependencies": {
-    "lodash": "^4.17.4"
+    "babel-runtime": "^6.23.0",
+    "keycode": "^2.1.8",
+    "lodash": "^4.17.4",
+    "roman-numerals": "^0.3.2"
   },
   "devDependencies": {
     "babel-core": "^6.23.1",
