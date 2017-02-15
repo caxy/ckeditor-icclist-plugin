@@ -1,0 +1,17 @@
+{
+  "name": "ckeditor-icclist-plugin",
+  "description": "CKEditor plugin for adding lists in iccxml",
+  "main": "index.js",
+  "authors": [
+    "Caxy <dev@caxy.com>"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
