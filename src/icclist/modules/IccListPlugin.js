@@ -350,6 +350,7 @@ class IccListPlugin {
       } catch (e) {
         newOrdinal = (i).toString()
       }
+      console.log(newOrdinal)
 
       let pNode = this.findOrCreateLabelNode(child, doc)
       let labelNode = pNode ? pNode.findOne('span.label') : null
