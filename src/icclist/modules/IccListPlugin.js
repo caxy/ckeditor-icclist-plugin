@@ -346,9 +346,9 @@ class IccListPlugin {
 
       let newOrdinal
       try {
-        newOrdinal = this.convertNumberToOrdinal(i + 1, ordinalType)
+        newOrdinal = this.convertNumberToOrdinal(i, ordinalType)
       } catch (e) {
-        newOrdinal = (i + 1).toString()
+        newOrdinal = (i).toString()
       }
 
       let pNode = this.findOrCreateLabelNode(child, doc)
