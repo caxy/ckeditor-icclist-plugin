@@ -340,18 +340,20 @@ class IccListPlugin {
       ordinalType = this.getOrdinalTypeFromListItem(listNode)
     }
 
-    console.log(ordinalType)
     for (let i = 0; i < length; i++) {
       const child = listNode.getChild(i)
       const ascendantOrdinal = this.findAscendantOrdinal(child, doc)
 
       let newOrdinal
+      const newOrdinalIndex = (ordinalType !== ORDINAL_TYPE_ALPHA_LOWER && ordinalType !== ORDINAL_TYPE_ALPHA_UPPER)
+        ? i + 1
+        : i
+
       try {
-        newOrdinal = this.convertNumberToOrdinal(i, ordinalType)
+        newOrdinal = this.convertNumberToOrdinal(newOrdinalIndex, ordinalType)
       } catch (e) {
-        newOrdinal = (i).toString()
+        newOrdinal = (newOrdinalIndex).toString()
       }
-      console.log(newOrdinal)
 
       let pNode = this.findOrCreateLabelNode(child, doc)
       let labelNode = pNode ? pNode.findOne('span.label') : null
