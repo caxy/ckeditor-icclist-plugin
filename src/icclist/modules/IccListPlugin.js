@@ -340,6 +340,7 @@ class IccListPlugin {
       ordinalType = this.getOrdinalTypeFromListItem(listNode)
     }
 
+    console.log(ordinalType)
     for (let i = 0; i < length; i++) {
       const child = listNode.getChild(i)
       const ascendantOrdinal = this.findAscendantOrdinal(child, doc)
