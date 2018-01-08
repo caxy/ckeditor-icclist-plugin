@@ -345,10 +345,14 @@ class IccListPlugin {
       const ascendantOrdinal = this.findAscendantOrdinal(child, doc)
 
       let newOrdinal
+      const newOrdinalIndex = (ordinalType !== ORDINAL_TYPE_ALPHA_LOWER && ordinalType !== ORDINAL_TYPE_ALPHA_UPPER)
+        ? i + 1
+        : i
+
       try {
-        newOrdinal = this.convertNumberToOrdinal(i + 1, ordinalType)
+        newOrdinal = this.convertNumberToOrdinal(newOrdinalIndex, ordinalType)
       } catch (e) {
-        newOrdinal = (i + 1).toString()
+        newOrdinal = (newOrdinalIndex).toString()
       }
 
       let pNode = this.findOrCreateLabelNode(child, doc)
