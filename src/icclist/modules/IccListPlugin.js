@@ -334,6 +334,7 @@ class IccListPlugin {
 
     console.log(listNode)
 
+    const isExceptionList = listNode.getParent().getParent().hasClass('exception')
     const length = listNode.getChildCount()
 
     // Try to determine the ordinal type.
@@ -388,7 +389,7 @@ class IccListPlugin {
 
       const childrenCount = child.getChildCount()
       for (let k = 0; k < childrenCount; k++) {
-        if (listNode.getParent().getParent().hasClass('exception')) {
+        if (isExceptionList) {
           continue
         }
 
@@ -402,7 +403,10 @@ class IccListPlugin {
   }
 
   updateListLabels (listNode, doc, editor, indent = false) {
+    console.log('--- updateListLabels')
+    console.log(listNode);
     if (listNode.is('ol')) {
+      console.log('--- calling')
       this.updateOrderedListLabels(listNode, doc, editor, indent)
     } else if (listNode.is('ul')) {
       this.updateUnorderedListLabels(listNode, doc, editor)
