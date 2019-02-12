@@ -393,7 +393,7 @@
         console.log('--- here')
         console.log(parentList)
         const grandparent = parentList.getParent().getParent()
-        const isExceptionList = grandparent.hasClass('exception')
+        const isExceptionList = grandparent && grandparent.hasClass('exception')
         const listAscendant = grandparent.getAscendant('ol')
         const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
 
