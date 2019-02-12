@@ -396,6 +396,7 @@
         const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
 
         if (!(isExceptionList && descendedFromList)) {
+          console.log('--- plugin.js');
           CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
         }
       }
