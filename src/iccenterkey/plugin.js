@@ -392,7 +392,14 @@
         // Renumber list.
         console.log('--- here')
         console.log(parentList)
-        CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
+        const grandparent = parentList.getParent().getParent()
+        const isExceptionList = grandparent.hasClass('exception')
+        const listAscendant = grandparent.getAscendant('ol')
+        const descendedFromList = listAscendant && listAscendant.hasClass('list')
+
+        if (!(isExceptionList && descendedFromList)) {
+          CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
+        }
       }
 
       range.select()
