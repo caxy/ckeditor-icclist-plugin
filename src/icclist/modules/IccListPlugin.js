@@ -394,6 +394,8 @@ class IccListPlugin {
           console.log('--- is exception')
           continue
         }
+
+        console.log('--- did not continue')
         if (child.getChild(k).is('ol')) {
           this.updateOrderedListLabels(child.getChild(k), doc, editor)
         } else if (child.getChild(k).is('ul')) {
