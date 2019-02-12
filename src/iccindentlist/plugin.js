@@ -227,6 +227,7 @@
               childListNodes[childIndex].type === CKEDITOR.NODE_ELEMENT &&
               (childListNodes[childIndex].is('ol') || childListNodes[childIndex].is('ul'))
             ) {
+              console.log('--- updateListLabels 1')
               CKEDITOR.plugins.list.updateListLabels(childListNodes[childIndex], range.document, editor, that.isIndent)
             }
           }
@@ -269,6 +270,7 @@
         const parentListNode = parentLiElement.getAscendant({ul: 1, ol: 1})
 
         if (parentListNode) {
+        console.log('--- updateListLabels 2')
           CKEDITOR.plugins.list.updateListLabels(parentListNode, range.document, editor)
         }
       }
