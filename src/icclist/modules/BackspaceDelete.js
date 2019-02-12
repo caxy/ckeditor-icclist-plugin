@@ -131,7 +131,6 @@ class BackspaceDelete {
 
       // Renumber the list if an ordered list.
       if (CKEDITOR.plugins.list.isInOrderedList(joinWith)) {
-        console.log('--- here 1')
         CKEDITOR.plugins.list.updateOrderedListLabels(
           CKEDITOR.plugins.list.getParentListNode(joinWith),
           editable.getDocument(),
@@ -295,7 +294,6 @@ class BackspaceDelete {
         // Renumber the list if an ordered list.
         const listNode = cursor.startContainer.getAscendant({ul: 1, ol: 1})
         if (listNode && listNode.is('ol')) {
-          console.log('--- here 2')
           CKEDITOR.plugins.list.updateOrderedListLabels(
             listNode,
             editable.getDocument(),
@@ -336,7 +334,6 @@ class BackspaceDelete {
 
           // Renumber the list if an ordered list.
           if (CKEDITOR.plugins.list.isInOrderedList(next)) {
-            console.log('--- here 3')
             CKEDITOR.plugins.list.updateOrderedListLabels(
               CKEDITOR.plugins.list.getParentListNode(next),
               editable.getDocument(),

@@ -315,7 +315,15 @@ export const changeListType = (editor, groupObj, database, listsCreated, type) =
   for (let i = 0; i < listCount; i++) {
     const child = listsCreated[i]
     if (child.getName() == 'ol') {
-      CKEDITOR.plugins.list.updateOrderedListLabels(child, doc, editor)
+      console.log('--- also here')
+      const grandparent = child.getParent().getParent()
+      const isExceptionList = grandparent && grandparent.hasClass('exception')
+      const listAscendant = grandparent.getAscendant('ol')
+      const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
+
+      if(!(isExceptionList && descendedFromList)) {
+        CKEDITOR.plugins.list.updateOrderedListLabels(child, doc, editor)
+      }
     } else if (child.getName() == 'ul') {
       CKEDITOR.plugins.list.updateUnorderedListLabels(child, doc, editor)
     }
@@ -537,4 +545,3 @@ export const mergeChildren = (from, into, refNode, forward) => {
     refNode ? child[ forward ? 'insertBefore' : 'insertAfter' ](refNode) : into.append(child, forward)
   }
 }
-
