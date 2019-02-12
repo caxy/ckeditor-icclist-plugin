@@ -395,7 +395,7 @@
         const grandparent = parentList.getParent().getParent()
         const isExceptionList = grandparent.hasClass('exception')
         const listAscendant = grandparent.getAscendant('ol')
-        const descendedFromList = listAscendant && listAscendant.getParnet().hasClass('list')
+        const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
 
         if (!(isExceptionList && descendedFromList)) {
           CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
