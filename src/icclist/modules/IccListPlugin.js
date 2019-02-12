@@ -344,7 +344,6 @@ class IccListPlugin {
 
     for (let i = 0; i < length; i++) {
       const child = listNode.getChild(i)
-      const ascendantOrdinal = this.findAscendantOrdinal(child, doc)
 
       let newOrdinal
       const newOrdinalIndex = (ordinalType !== ORDINAL_TYPE_ALPHA_LOWER && ordinalType !== ORDINAL_TYPE_ALPHA_UPPER)
@@ -366,7 +365,6 @@ class IccListPlugin {
           ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
           : ''
 
-        console.log('--- updateLabel 1');
         labelNode.setHtml(this.updateLabel(labelParts, newPrefix, newOrdinal))
       } else {
         labelNode = doc.createElement('span')
@@ -391,11 +389,9 @@ class IccListPlugin {
       const childrenCount = child.getChildCount()
       for (let k = 0; k < childrenCount; k++) {
         if (listNode.getParent().getParent().hasClass('exception')) {
-          console.log('--- is exception')
           continue
         }
 
-        console.log('--- did not continue')
         if (child.getChild(k).is('ol')) {
           this.updateOrderedListLabels(child.getChild(k), doc, editor)
         } else if (child.getChild(k).is('ul')) {
