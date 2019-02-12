@@ -390,8 +390,6 @@
 
       if (parentList && isInOrderedList) {
         // Renumber list.
-        console.log('--- here')
-        console.log(parentList)
         const grandparent = parentList.getParent().getParent()
         const isExceptionList = grandparent && grandparent.hasClass('exception')
         const listAscendant = grandparent.getAscendant('ol')
