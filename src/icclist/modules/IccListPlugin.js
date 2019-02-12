@@ -390,7 +390,7 @@ class IccListPlugin {
 
       const childrenCount = child.getChildCount()
       for (let k = 0; k < childrenCount; k++) {
-        if (listNode.grandparent.hasClass('exception')) {
+        if (listNode.getParent().getParent().hasClass('exception')) {
           console.log('--- is exception')
           continue
         }
