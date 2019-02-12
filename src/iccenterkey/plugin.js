@@ -591,7 +591,6 @@
         }
 
         const parentList = blockGrandParent.getAscendant({ul: 1, ol: 1})
-        console.log('--- here 7')
         CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
       } else if (!needsBlock) {
         block.appendBogus(true)
@@ -627,7 +626,6 @@
           }
 
           const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
-          console.log('--- here 1')
           CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
         } else {
           // If the empty block is neither first nor last child
@@ -664,10 +662,8 @@
             nextList = nextList.findOne('ul, ol')
           }
 
-          console.log('--- here 2')
           CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
           if (nextList && (nextList.type === CKEDITOR.NODE_ELEMENT && (nextList.is('ul') || nextList.is('ol')))) {
-            console.log('--- here 3')
             CKEDITOR.plugins.list.updateListLabels(nextList, doc, editor)
           }
         }
@@ -714,7 +710,6 @@
           newBlock[firstChild ? 'insertBefore' : 'insertAfter'](targetParentNode)
 
           const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
-          console.log('--- here 4')
           CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
         } else {
           // If the empty block is neither first nor last child
@@ -738,10 +733,8 @@
             nextList = nextList.find('ul, ol')
           }
 
-          console.log('--- here 5')
           CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
           if (nextList.is('ul') || nextList.is('ol')) {
-            console.log('--- here 6')
             CKEDITOR.plugins.list.updateListLabels(nextList, doc, editor)
           }
         }

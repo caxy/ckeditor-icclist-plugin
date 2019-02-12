@@ -332,6 +332,8 @@ class IccListPlugin {
       return
     }
 
+    console.log('--- updateOrderedListLabels')
+
     const length = listNode.getChildCount()
 
     // Try to determine the ordinal type.
