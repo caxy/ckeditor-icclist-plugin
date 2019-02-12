@@ -332,8 +332,6 @@ class IccListPlugin {
       return
     }
 
-    console.log('--- updateOrderedListLabels')
-
     const length = listNode.getChildCount()
 
     // Try to determine the ordinal type.
@@ -399,7 +397,6 @@ class IccListPlugin {
 
   updateListLabels (listNode, doc, editor, indent = false) {
     if (listNode.is('ol')) {
-      console.log('--- updateListLabels')
       this.updateOrderedListLabels(listNode, doc, editor, indent)
     } else if (listNode.is('ul')) {
       this.updateUnorderedListLabels(listNode, doc, editor)

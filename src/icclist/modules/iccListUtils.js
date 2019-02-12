@@ -315,7 +315,6 @@ export const changeListType = (editor, groupObj, database, listsCreated, type) =
   for (let i = 0; i < listCount; i++) {
     const child = listsCreated[i]
     if (child.getName() == 'ol') {
-      console.log('--- also here')
       const grandparent = child.getParent().getParent()
       const isExceptionList = grandparent && grandparent.hasClass('exception')
       const listAscendant = grandparent.getAscendant('ol')
