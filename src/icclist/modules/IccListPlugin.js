@@ -390,6 +390,10 @@ class IccListPlugin {
 
       const childrenCount = child.getChildCount()
       for (let k = 0; k < childrenCount; k++) {
+        if (listNode.grandparent.hasClass('exception')) {
+          console.log('--- is exception')
+          continue
+        }
         if (child.getChild(k).is('ol')) {
           this.updateOrderedListLabels(child.getChild(k), doc, editor)
         } else if (child.getChild(k).is('ul')) {
