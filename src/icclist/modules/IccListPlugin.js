@@ -364,6 +364,7 @@ class IccListPlugin {
           ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
           : ''
 
+        console.log('--- updateLabel 1');
         labelNode.setHtml(this.updateLabel(labelParts, newPrefix, newOrdinal))
       } else {
         labelNode = doc.createElement('span')
@@ -374,6 +375,7 @@ class IccListPlugin {
           ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
           : ''
 
+        console.log('--- updateLabel 2');
         labelNode.appendText(this.updateLabel(labelParts, newPrefix, newOrdinal))
         if (pNode.getFirst()) {
           labelNode.insertBefore(pNode.getFirst())
