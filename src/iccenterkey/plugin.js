@@ -390,6 +390,8 @@
 
       if (parentList && isInOrderedList) {
         // Renumber list.
+        console.log('--- here')
+        console.log(parentList)
         CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
       }
 

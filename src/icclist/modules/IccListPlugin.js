@@ -403,10 +403,7 @@ class IccListPlugin {
   }
 
   updateListLabels (listNode, doc, editor, indent = false) {
-    console.log('--- updateListLabels')
-    console.log(listNode);
     if (listNode.is('ol')) {
-      console.log('--- calling')
       this.updateOrderedListLabels(listNode, doc, editor, indent)
     } else if (listNode.is('ul')) {
       this.updateUnorderedListLabels(listNode, doc, editor)
