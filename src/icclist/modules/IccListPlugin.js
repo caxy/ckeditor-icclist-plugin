@@ -375,7 +375,6 @@ class IccListPlugin {
           ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
           : ''
 
-        console.log('--- updateLabel 2');
         labelNode.appendText(this.updateLabel(labelParts, newPrefix, newOrdinal))
         if (pNode.getFirst()) {
           labelNode.insertBefore(pNode.getFirst())
@@ -389,6 +388,8 @@ class IccListPlugin {
 
       const childrenCount = child.getChildCount()
       for (let k = 0; k < childrenCount; k++) {
+        console.log(child.getChild(k))
+        console.log(child.getChild(k).getAttribute('class'))
         if (child.getChild(k).is('ol')) {
           this.updateOrderedListLabels(child.getChild(k), doc, editor)
         } else if (child.getChild(k).is('ul')) {
