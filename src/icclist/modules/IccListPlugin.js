@@ -368,7 +368,6 @@ class IccListPlugin {
       } else {
         labelNode = doc.createElement('span')
         labelNode.addClass('label')
-        console.log('--- new label node created');
 
         const labelParts = this.parseOrdinal(newOrdinal + '.')
         const newPrefix = ordinalType === ORDINAL_TYPE_SECTION && !nestedExceptionList
@@ -404,7 +403,6 @@ class IccListPlugin {
   }
 
   updateListLabels (listNode, doc, editor, indent = false, nestedExceptionList = false) {
-    console.log('--- update')
     if (listNode.is('ol')) {
       this.updateOrderedListLabels(listNode, doc, editor, indent, nestedExceptionList)
     } else if (listNode.is('ul')) {
