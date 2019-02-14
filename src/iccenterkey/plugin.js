@@ -23,21 +23,10 @@
           }
         )
 
-        editor.addCommand(
-          'altEnter', {
-            modes: {wysiwyg: 1},
-            editorFocus: false,
-            exec (editor) {
-              altEnter(editor)
-            }
-          }
-        )
-
         editor.setKeystroke(
           [
             [13, 'enter'],
-            [CKEDITOR.SHIFT + 13, 'shiftEnter'],
-            [CKEDITOR.ALT + 13, 'altEnter']
+            [CKEDITOR.SHIFT + 13, 'shiftEnter']
           ]
         )
       }
