@@ -273,10 +273,15 @@
           const isExceptionList = grandparent && grandparent.hasClass('exception')
           const listAscendant = grandparent.getAscendant('ol')
           const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
+          const nestedExceptionList = isExceptionList && descendedFromList
 
-          if (!(isExceptionList && descendedFromList)) {
-            CKEDITOR.plugins.list.updateListLabels(parentListNode, range.document, editor)
-          }
+          CKEDITOR.plugins.list.updateListLabels(
+            parentListNode,
+            range.document,
+            editor,
+            false,
+            nestedExceptionList
+          )
         }
       }
 

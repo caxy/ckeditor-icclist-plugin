@@ -23,10 +23,21 @@
           }
         )
 
+        editor.addCommand(
+          'altEnter', {
+            modes: {wysiwyg: 1},
+            editorFocus: false,
+            exec (editor) {
+              altEnter(editor)
+            }
+          }
+        )
+
         editor.setKeystroke(
           [
             [13, 'enter'],
-            [CKEDITOR.SHIFT + 13, 'shiftEnter']
+            [CKEDITOR.SHIFT + 13, 'shiftEnter'],
+            [CKEDITOR.ALT + 13, 'altEnter']
           ]
         )
       }
@@ -73,7 +84,7 @@
      * @param {CKEDITOR.dom.element}  newBlock
      * @param {CKEDITOR.dom.document} doc
      * @param {CKEDITOR.dom.element}  previousListItemNode
-     * @param {boolean}                  orderedList
+     * @param {boolean}               orderedList
      * @returns {*}
      */
     addListItemElements (newBlock, doc, previousListItemNode = null, orderedList = false) {
@@ -254,12 +265,31 @@
         }
       } else if (previousBlock && (node = previousBlock.getParent()) && node.is('li')) {
         previousListItemNode = node.clone()
-        previousBlock.breakParent(node)
-        node = previousBlock.getNext() // = <li></li>
-        range.moveToElementEditStart(node)
-        previousBlock.move(previousBlock.getPrevious()) // move p tag back into the <li>
 
-        if (node.getFirst() && (node.getFirst().is('ol') || node.getFirst().is('ul'))) {
+        const next = previousBlock.getNext()
+        const nextIsExceptionList =
+          next && next.$.classList.contains('cke_widget_exceptionlist')
+        if (nextIsExceptionList) {
+          next.breakParent(node)
+        } else {
+          previousBlock.breakParent(node)
+        }
+
+        node = nextIsExceptionList
+          ? next.getNext()
+          : previousBlock.getNext() // = <li></li>
+
+        range.moveToElementEditStart(node)
+
+        nextIsExceptionList
+          ? next.move(next.getPrevious())
+          : previousBlock.move(previousBlock.getPrevious()) // move p tag back into the <li>
+
+        if (
+          node.getFirst() &&
+          node.getFirst().$.nodeName !== '#text' &&
+          (node.getFirst().is('ol') || node.getFirst().is('ul'))
+        ) {
           // If the next list item has a list as first child, add empty label.
           const paragraphNode = doc.createElement('p')
           const labelNode = doc.createElement('span')
@@ -366,6 +396,11 @@
         newBlock.appendBogus()
 
         if (!newBlock.getParent()) {
+          if (range.startContainer.$.hasChildNodes('exception')) {
+            // Move range after the exception list
+            range.moveToPosition(range.startContainer, CKEDITOR.POSITION_BEFORE_END)
+          }
+
           range.insertNode(newBlock)
         }
 
@@ -626,7 +661,19 @@
           }
 
           const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
-          CKEDITOR.plugins.list.updateListLabels(parentList, doc, editor)
+          const grandparent = parentList.getParent().getParent()
+          const isExceptionList = grandparent && grandparent.hasClass('exception')
+          const listAscendant = grandparent.getAscendant('ol')
+          const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
+          const nestedExceptionList = isExceptionList && descendedFromList
+
+          CKEDITOR.plugins.list.updateListLabels(
+            parentList,
+            doc,
+            editor,
+            false,
+            nestedExceptionList
+          )
         } else {
           // If the empty block is neither first nor last child
           // then split the list and put all the block contents
