@@ -1,4 +1,6 @@
 /*global CKEDITOR*/
+import { isNestedExceptionList } from '../icclist/modules/iccListUtils'
+
 ((() => {
   const isNotWhitespaces = CKEDITOR.dom.walker.whitespaces(true)
   const isNotBookmark = CKEDITOR.dom.walker.bookmark(false, true)
@@ -269,11 +271,7 @@
         const parentListNode = parentLiElement.getAscendant({ul: 1, ol: 1})
 
         if (parentListNode) {
-          const grandparent = parentListNode.getParent().getParent()
-          const isExceptionList = grandparent && grandparent.hasClass('exception')
-          const listAscendant = grandparent.getAscendant('ol')
-          const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
-          const nestedExceptionList = isExceptionList && descendedFromList
+          const nestedExceptionList = isNestedExceptionList(parentListNode)
 
           CKEDITOR.plugins.list.updateListLabels(
             parentListNode,

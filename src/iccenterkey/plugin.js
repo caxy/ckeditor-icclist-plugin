@@ -1,4 +1,6 @@
 /*global CKEDITOR*/
+import { isNestedExceptionList } from '../icclist/modules/iccListUtils'
+
 ((() => {
   CKEDITOR.plugins.add(
     'iccenterkey', {
@@ -255,6 +257,10 @@
       } else if (previousBlock && (node = previousBlock.getParent()) && node.is('li')) {
         previousListItemNode = node.clone()
 
+        // previousBlock here should be the p containing the label.
+        // If the next block is an exception list widget, we need to call
+        // breakParent on that instead, so it stays in the current list item
+        // and doesn't end up in the new one.
         const next = previousBlock.getNext()
         const nextIsExceptionList =
           next && next.$.classList.contains('cke_widget_exceptionlist')
@@ -264,16 +270,22 @@
           previousBlock.breakParent(node)
         }
 
+        // = <li></li>
+        // This is the new list item created by breakParent.
         node = nextIsExceptionList
           ? next.getNext()
-          : previousBlock.getNext() // = <li></li>
+          : previousBlock.getNext()
 
         range.moveToElementEditStart(node)
 
+        // move p tag back into the <li>
+        // If next block is an exception list, move that instead.
         nextIsExceptionList
           ? next.move(next.getPrevious())
-          : previousBlock.move(previousBlock.getPrevious()) // move p tag back into the <li>
+          : previousBlock.move(previousBlock.getPrevious())
 
+        // In the case that next is an exception list, node is a text node,
+        // and node.getFirst().is is undefined for text nodes.
         if (
           node.getFirst() &&
           node.getFirst().$.nodeName !== '#text' &&
@@ -385,8 +397,9 @@
         newBlock.appendBogus()
 
         if (!newBlock.getParent()) {
+          // if the range contains an exception list,
+          // move range after the exception list
           if (range.startContainer.$.hasChildNodes('exception')) {
-            // Move range after the exception list
             range.moveToPosition(range.startContainer, CKEDITOR.POSITION_BEFORE_END)
           }
 
@@ -414,12 +427,7 @@
 
       if (parentList && isInOrderedList) {
         // Renumber list.
-        const grandparent = parentList.getParent().getParent()
-        const isExceptionList = grandparent && grandparent.hasClass('exception')
-        const listAscendant = grandparent.getAscendant('ol')
-        const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
-
-        if (!(isExceptionList && descendedFromList)) {
+        if (!isNestedExceptionList(parentList)) {
           CKEDITOR.plugins.list.updateOrderedListLabels(parentList, doc, editor)
         }
       }
@@ -650,11 +658,7 @@
           }
 
           const parentList = blockParent.getAscendant({ul: 1, ol: 1}, true)
-          const grandparent = parentList.getParent().getParent()
-          const isExceptionList = grandparent && grandparent.hasClass('exception')
-          const listAscendant = grandparent.getAscendant('ol')
-          const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
-          const nestedExceptionList = isExceptionList && descendedFromList
+          const nestedExceptionList = isNestedExceptionList(parentList)
 
           CKEDITOR.plugins.list.updateListLabels(
             parentList,

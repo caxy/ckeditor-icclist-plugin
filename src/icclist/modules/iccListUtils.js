@@ -544,3 +544,20 @@ export const mergeChildren = (from, into, refNode, forward) => {
     refNode ? child[ forward ? 'insertBefore' : 'insertAfter' ](refNode) : into.append(child, forward)
   }
 }
+
+/**
+ * Check if this list item is inside a nested exception list
+ *
+ * @param from
+ * @param into
+ * @param refNode
+ * @param forward
+ */
+export const isNestedExceptionList = (parent) => {
+  const grandparent = parent.getParent().getParent()
+  const isExceptionList = grandparent && grandparent.hasClass('exception')
+  const listAscendant = grandparent && grandparent.getAscendant('ol')
+  const descendedFromList = listAscendant && listAscendant.getParent().hasClass('list')
+
+  return isExceptionList && descendedFromList
+}
