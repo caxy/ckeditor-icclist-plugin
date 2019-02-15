@@ -326,8 +326,9 @@ class IccListPlugin {
    * @param {CKEDITOR.dom.document} doc
    * @param {CKEDITOR.editor}       editor
    * @param {boolean}               indent
+   * @param {boolean}               nestedExceptionList
    */
-  updateOrderedListLabels (listNode, doc, editor, indent = false) {
+  updateOrderedListLabels (listNode, doc, editor, indent = false, nestedExceptionList = false) {
     if (!listNode.is('ol')) {
       return
     }
@@ -342,7 +343,6 @@ class IccListPlugin {
 
     for (let i = 0; i < length; i++) {
       const child = listNode.getChild(i)
-      const ascendantOrdinal = this.findAscendantOrdinal(child, doc)
 
       let newOrdinal
       const newOrdinalIndex = (ordinalType !== ORDINAL_TYPE_ALPHA_LOWER && ordinalType !== ORDINAL_TYPE_ALPHA_UPPER)
@@ -360,7 +360,7 @@ class IccListPlugin {
 
       if (labelNode) {
         const labelParts = this.parseOrdinal(labelNode.getHtml())
-        const newPrefix = ordinalType === ORDINAL_TYPE_SECTION
+        const newPrefix = ordinalType === ORDINAL_TYPE_SECTION && !nestedExceptionList
           ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
           : ''
 
@@ -370,7 +370,7 @@ class IccListPlugin {
         labelNode.addClass('label')
 
         const labelParts = this.parseOrdinal(newOrdinal + '.')
-        const newPrefix = ordinalType === ORDINAL_TYPE_SECTION
+        const newPrefix = ordinalType === ORDINAL_TYPE_SECTION && !nestedExceptionList
           ? this.getSectionPrefix(child, doc, labelParts.prefix, indent)
           : ''
 
@@ -387,18 +387,24 @@ class IccListPlugin {
 
       const childrenCount = child.getChildCount()
       for (let k = 0; k < childrenCount; k++) {
-        if (child.getChild(k).is('ol')) {
-          this.updateOrderedListLabels(child.getChild(k), doc, editor)
-        } else if (child.getChild(k).is('ul')) {
+        const currentChild = child.getChild(k)
+
+        if (currentChild.$.nodeName === '#text') {
+          continue
+        }
+
+        if (currentChild.is('ol')) {
+          this.updateOrderedListLabels(currentChild, doc, editor)
+        } else if (currentChild.is('ul')) {
           this.updateUnorderedListLabels(child.getChild(k), doc, editor)
         }
       }
     }
   }
 
-  updateListLabels (listNode, doc, editor, indent = false) {
+  updateListLabels (listNode, doc, editor, indent = false, nestedExceptionList = false) {
     if (listNode.is('ol')) {
-      this.updateOrderedListLabels(listNode, doc, editor, indent)
+      this.updateOrderedListLabels(listNode, doc, editor, indent, nestedExceptionList)
     } else if (listNode.is('ul')) {
       this.updateUnorderedListLabels(listNode, doc, editor)
     } else {
