@@ -70,10 +70,10 @@ class IccListPluginConfiguration {
     // If the target element has a list ancestor, dispatch a custom event with its id.
     editor.on('doubleclick', evt => {
       const target = evt.data.element
-      const ascendant = target.getAscendant((el) => el && el.getName() === 'div' && el.hasClass('list'))
+      const ascendant = target.getAscendant((el) => el && el.getName && el.getName() === 'div' && el.hasClass('list'))
 
       if (ascendant) {
-        const listCreatedEvent = new CustomEvent('list-created', { detail: ascendant.getAttribute('id') })
+        const listCreatedEvent = new CustomEvent('list-edit', { detail: ascendant.getAttribute('id') })
 
         const target = document.getElementById('list-event-listener')
         target && target.dispatchEvent(listCreatedEvent)
