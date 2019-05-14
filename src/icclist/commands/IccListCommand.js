@@ -141,13 +141,14 @@ class IccListCommand {
     // We either have to build lists or remove lists, for removing a list does not makes sense when we are looking
     // at the group that's not rooted at lists. So we have three cases to handle.
     const listsCreated = []
+    let newListId = ''
     while (listGroups.length > 0) {
       groupObj = listGroups.shift()
       if (this.state == CKEDITOR.TRISTATE_OFF) {
         if (listNodeNames[groupObj.root.getName()]) {
           changeListType(editor, groupObj, database, listsCreated, this.type)
         } else {
-          createList(editor, groupObj, listsCreated, this.type)
+          newListId = createList(editor, groupObj, listsCreated, this.type)
         }
       } else if (this.state == CKEDITOR.TRISTATE_ON && listNodeNames[groupObj.root.getName()]) {
         removeList.call(this, editor, groupObj, database)
@@ -165,6 +166,14 @@ class IccListCommand {
       selection.selectBookmarks(bookmarks)
     } catch (e) {}
     editor.focus()
+
+    // Dispatch a custom event when creating a list. This should be caught
+    // by our react app, but check that the listening element exists
+    // before dispatching.
+    const listCreatedEvent = new CustomEvent('list-created', { detail: newListId })
+
+    const target = document.getElementById('list-event-listener')
+    target && target.dispatchEvent(listCreatedEvent)
   }
 
   refresh (editor, path) {
