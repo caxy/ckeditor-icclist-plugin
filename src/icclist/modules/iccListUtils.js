@@ -211,6 +211,21 @@ export const listNodeNames = { ol: 1, ul: 1 }
 /**
  *
  * @param {CKEDITOR.dom.document} doc
+ * @returns {string}
+ */
+export const createGuid = () => {
+  const s4 = () => {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1)
+  }
+  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+    s4() + '-' + s4() + s4() + s4()
+}
+
+/**
+ *
+ * @param {CKEDITOR.dom.document} doc
  * @param {string} type
  * @returns {*}
  */
@@ -222,6 +237,7 @@ export const createListNode = (doc, type) => {
   listNode.addClass('no_mark')
 
   divNode.append(listNode)
+  divNode.setAttribute('data-list-id', createGuid())
 
   // Set the list type, using default ordinal type.
   listNode.setCustomData('listType', ORDINAL_TYPE_DEFAULT)
@@ -443,6 +459,8 @@ export const createList = ({config}, groupObj, listsCreated, type) => {
   if (insertAnchor) {
     listNodeWrapper.insertBefore(insertAnchor)
   } else { listNodeWrapper.appendTo(commonParent) }
+
+  return listNodeWrapper.getAttribute('data-list-id')
 }
 
 export const removeList = (editor, {root, contents}, database) => {
