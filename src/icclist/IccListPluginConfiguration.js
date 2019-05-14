@@ -61,25 +61,22 @@ class IccListPluginConfiguration {
       // Justification: http://dev.ckeditor.com/ticket/11861#comment:13
       const key = domEvent.getKey()
 
-      // ESC
-      if (editor.mode !== 'wysiwyg' || key !== 27) {
-        return
+      // Cancel all key events so the list cannot be edited directly
+      if (typeof domEvent.cancelable !== 'boolean' || domEvent.cancelable) {
+        domEvent.preventDefault();
       }
+    })
 
-      const sel = editor.getSelection()
-      const range = sel.getRanges()[0]
+    // If the target element has a list ancestor, dispatch a custom event with its id.
+    editor.on('doubleclick', evt => {
+      const target = evt.data.element
+      const ascendant = target.getAscendant((el) => el && el.getName() === 'div' && el.hasClass('list'))
 
-      if (!range || !range.collapsed) {
-        return
-      }
+      if (ascendant) {
+        const listCreatedEvent = new CustomEvent('list-created', { detail: ascendant.getAttribute('id') })
 
-      const start = range.startContainer
-      const isListContainer = start.type == CKEDITOR.NODE_ELEMENT && start.is('div') && start.hasClass('list')
-      const cursor = range.clone()
-
-      if (start && isListContainer) {
-        cursor.moveToPosition(start, CKEDITOR.POSITION_AFTER_END)
-        cursor.select()
+        const target = document.getElementById('list-event-listener')
+        target && target.dispatchEvent(listCreatedEvent)
       }
     })
   }
