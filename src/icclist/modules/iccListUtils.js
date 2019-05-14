@@ -237,7 +237,7 @@ export const createListNode = (doc, type) => {
   listNode.addClass('no_mark')
 
   divNode.append(listNode)
-  divNode.setAttribute('data-list-id', createGuid())
+  divNode.setAttribute('id', createGuid())
 
   // Set the list type, using default ordinal type.
   listNode.setCustomData('listType', ORDINAL_TYPE_DEFAULT)
@@ -460,7 +460,7 @@ export const createList = ({config}, groupObj, listsCreated, type) => {
     listNodeWrapper.insertBefore(insertAnchor)
   } else { listNodeWrapper.appendTo(commonParent) }
 
-  return listNodeWrapper.getAttribute('data-list-id')
+  return listNodeWrapper.getAttribute('id')
 }
 
 export const removeList = (editor, {root, contents}, database) => {
