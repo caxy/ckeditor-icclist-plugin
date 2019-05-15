@@ -56,14 +56,26 @@ class IccListPluginConfiguration {
     editor.on('key', backspaceDelete.keyListener.bind(backspaceDelete))
 
     // Exit div.list if that's where the cursor is.
-    editor.on('key', ({ data: { domEvent }, cancel }) => {
+    editor.on('key', evt => {
       // Use getKey directly in order to ignore modifiers.
       // Justification: http://dev.ckeditor.com/ticket/11861#comment:13
-      const key = domEvent.getKey()
+      const domEvent = evt.data.domEvent
+      const sel = editor.getSelection()
+      const range = sel.getRanges()[0]
 
-      // Cancel all key events so the list cannot be edited directly
-      if (typeof domEvent.cancelable !== 'boolean' || domEvent.cancelable) {
-        domEvent.preventDefault();
+      if (!range || !range.collapsed) {
+        return
+      }
+
+      const start = range.startContainer
+      const ascendant = start.getAscendant((el) => el && el.getName && el.getName() === 'div' && el.hasClass('list'))
+
+
+      if (ascendant) {
+        // Cancel all key events so the list cannot be edited directly
+        if (typeof domEvent.cancelable !== 'boolean' || domEvent.cancelable) {
+          domEvent.preventDefault();
+        }
       }
     })
 
