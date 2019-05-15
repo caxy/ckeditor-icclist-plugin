@@ -1,6 +1,6 @@
 {
   "name": "ckeditor-icclist-plugin",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "CKEditor plugin for adding lists in iccxml",
   "main": "index.js",
   "repository": "git+https://github.com/InternationalCodeCouncil/ckeditor-iccexception-plugin",
