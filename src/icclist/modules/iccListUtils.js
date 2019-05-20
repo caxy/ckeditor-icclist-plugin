@@ -234,7 +234,10 @@ export const createListNode = (doc, type) => {
   const divNode = doc.createElement('div')
   divNode.addClass('list')
   const listNode = doc.createElement(type)
-  listNode.addClass('no_mark')
+
+  if (type === 'ol') {
+    listNode.addClass('no_mark')
+  }
 
   divNode.append(listNode)
   divNode.setAttribute('id', createGuid())
