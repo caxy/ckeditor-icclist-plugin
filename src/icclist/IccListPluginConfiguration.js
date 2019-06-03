@@ -70,7 +70,6 @@ class IccListPluginConfiguration {
       const start = range.startContainer
       const ascendant = start.getAscendant((el) => el && el.getName && el.getName() === 'div' && el.hasClass('list'))
 
-
       if (ascendant) {
         // Cancel all key events so the list cannot be edited directly
         if (typeof domEvent.cancelable !== 'boolean' || domEvent.cancelable) {
@@ -83,8 +82,11 @@ class IccListPluginConfiguration {
     editor.on('doubleclick', evt => {
       const target = evt.data.element
       const ascendant = target.getAscendant((el) => el && el.getName && el.getName() === 'div' && el.hasClass('list'))
+      const exceptionAscendant =  target.getAscendant((el) => {
+        return el && el.getName && el.getName() === 'div' && el.hasClass('exception')
+      })
 
-      if (ascendant) {
+      if (ascendant && !exceptionAscendant) {
         const listCreatedEvent = new CustomEvent('list-edit', { detail: ascendant.getAttribute('id') })
 
         const target = document.getElementById('list-event-listener')
