@@ -54,6 +54,14 @@ class IccListPluginConfiguration {
 
     // Handled backspace/del key to join list items.
     editor.on('key', backspaceDelete.keyListener.bind(backspaceDelete))
+    editor.on('contentDom', () => {
+      const lists = editor.document.find('div.list')
+
+      lists.toArray().forEach(list => {
+        list.unselectable()
+        list.setAttribute('contenteditable', false)
+      })
+    })
 
     // Exit div.list if that's where the cursor is.
     editor.on('key', evt => {
