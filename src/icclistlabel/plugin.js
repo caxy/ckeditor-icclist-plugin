@@ -21,11 +21,6 @@ import keycode from 'keycode'
         'icclistlabel', {
           button: 'Add a list label',
           template: '<span class="label">1.</span>',
-          editables: {
-            label: {
-              selector: 'span.label'
-            }
-          },
           draggable: false,
 
           /**
