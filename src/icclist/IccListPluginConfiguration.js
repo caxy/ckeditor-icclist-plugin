@@ -94,7 +94,11 @@ class IccListPluginConfiguration {
         return el && el.getName && el.getName() === 'div' && el.hasClass('exception')
       })
 
-      if (ascendant && !exceptionAscendant) {
+      const equationAscendant = target.getAscendant((el) => {
+        return el && el.getName && el.getName() === 'div' && el.hasClass('equation_group')
+      })
+
+      if (ascendant && !exceptionAscendant && !equationAscendant) {
         const listCreatedEvent = new CustomEvent('list-edit', { detail: ascendant.getAttribute('id') })
 
         const target = document.getElementById('list-event-listener')
